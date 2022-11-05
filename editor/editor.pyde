@@ -11,32 +11,63 @@ class Vector2D():
 
 class TextBox():
     def __init__(self, x, y):
-        self.string = ''
+        self.string = ['']
         self.cursor = 0
+        self.max_cursor = 0
+        self.line = 0
         self.pos = Vector2D(x, y)
 
     def type(self, c):
-        self.string = self.string[:self.cursor] + c + self.string[self.cursor:]
+        self.string[self.line] = self.string[self.line][:self.cursor] + c + self.string[self.line][self.cursor:]
         self.cursor += 1
+        self.max_cursor += 1
 
     def left(self):
         self.cursor -= 1
         self.cursor = max(0, self.cursor)
+        self.max_cursor = self.cursor
     
     def right(self):
         self.cursor += 1
-        self.cursor = min(self.cursor, len(self.string))
+        self.cursor = min(self.cursor, len(self.string[self.line]))
+        self.max_cursor = self.cursor
+        
+    def down(self):
+        if self.line < len(self.string) - 1:
+            self.line += 1
+            self.cursor = min(self.max_cursor, len(self.string[self.line]))
+            
+    def up(self):
+        if self.line > 0:
+            self.line -= 1
+            self.cursor = min(self.max_cursor, len(self.string[self.line]))
+
+    def enter(self):
+        self.string = self.string[:self.line] + [self.string[self.line][:self.cursor]] + [self.string[self.line][self.cursor:]] + self.string[self.line+1:]
+        self.line += 1
+        self.cursor = 0
+        self.max_cursor = self.cursor
 
     def backspace(self):
-        if len(self.string) > 0:
-            self.string = self.string[:len(self.string)-1]
+        if self.cursor > 0:
+            self.string[self.line] = self.string[self.line][:self.cursor-1] + self.string[self.line][self.cursor:]
+            self.cursor -= 1
+        elif self.line > 0:
+            self.cursor = len(self.string[self.line-1])
+            self.string = self.string[:self.line-1] + [self.string[self.line-1] + self.string[self.line]] + self.string[self.line+1:]
+            self.line -= 1
+        self.max_cursor = self.cursor
     
     def space(self):
         self.type(' ')
     
     def draw(self):
         fill(0)
-        text("|1|" + self.string[:self.cursor] + "|" + self.string[self.cursor:], self.pos.x, self.pos.y)
+        for i, string_line in enumerate(self.string):
+            if i == self.line:
+                text("|" + str(i) + "|" + string_line[:self.cursor] + "|" + string_line[self.cursor:], self.pos.x, self.pos.y + i * FONT_SIZE)
+            else:
+                text("|" + str(i) + "|" + string_line, self.pos.x, self.pos.y + i * FONT_SIZE)
         
 textbox = TextBox(0, FONT_SIZE)
 
@@ -54,6 +85,8 @@ def keyTyped():
         textbox.type(str(key))
     elif key == BACKSPACE:
         textbox.backspace()
+    elif key == ENTER:
+        textbox.enter()
     elif key == ' ':
         textbox.space()
 
@@ -62,3 +95,7 @@ def keyPressed():
         textbox.left()
     elif keyCode == RIGHT:
         textbox.right()
+    elif keyCode == DOWN:
+        textbox.down()
+    elif keyCode == UP:
+        textbox.up()
